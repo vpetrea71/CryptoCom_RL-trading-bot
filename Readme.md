@@ -46,4 +46,4 @@ python scripts/stock-prices.py price
 - Adding sentiment analysis to the state
 - Risk Management
 - CryptoCom exchange add perpetual env to trade perpetual symbols ,i tried bun no luck
-- 
+- feel free to help me inprove this RL_TRADING BOT
