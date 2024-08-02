@@ -231,6 +231,9 @@ class LiveBinanceEnvironment(py_environment.PyEnvironment):
         self.MACD_trend = self.MACD_trend.fillna(self.MACD_trend[self.slow_ema]).tolist()
         self.MACD = [self.MACD_trend[-k] for k in reversed(range(self.macd_t))]
 
+        # Calculate MA5
+        self.MA5 = self.price_data['Close'].rolling(window=5).mean().tolist()
+
         self._action_spec = array_spec.BoundedArraySpec(shape=(), dtype=np.int32, minimum=0, maximum=2, name='action')
         self._observation_spec = array_spec.BoundedArraySpec(shape=(price_history_t + macd_t + 1,), dtype=np.float32, name="observation")
 
@@ -313,52 +316,61 @@ class LiveBinanceEnvironment(py_environment.PyEnvironment):
         self.MACD_trend = ta.trend.ema_indicator(self.price_data['Close'], self.fast_ema) - ta.trend.ema_indicator(self.price_data['Close'], self.slow_ema)
         self.MACD_trend = self.MACD_trend.fillna(self.MACD_trend[self.slow_ema]).tolist()
         self.MACD = [self.MACD_trend[-k] for k in reversed(range(self.macd_t))]
-        self._state = [self.balance] + self.return_history + self.MACD
+        self.MA5 = self.price_data['Close'].rolling(window=5).mean().tolist()
+        self._state = [self.balance] + self.return_history + self.MACD + [self.MA5[-1]]
         return ts.restart(np.array(self._state, dtype=np.float32))
 
     def _step(self, action):
         reward = 0
         cost_basis = 0
-        if action == 0:
+        current_price = self.price_data.iloc[-1]['Close']
+        ma5 = self.MA5[-1]
+
+        usd_balance = float(self.client.get_asset_balance(asset='USDT')['free'])
+        btc_balance = float(self.client.get_asset_balance(asset=self.asset1)['free'])
+
+        if action == 0:  # Hold
             print("################Agent chose to hold.#################")
-        elif action == 1:
+            if current_price > ma5:  # Uptrend
+                reward = 0.1
+            else:  # Downtrend
+                reward = -0.1
+        elif action == 1:  # Buy
             print("################Agent chose to buy.##################")
             avg_price_info = self.client.get_avg_price(symbol=self.assetpair)
-            time.sleep(5)  # Add delay after the request
+            time.sleep(5)
             average_price = float(avg_price_info['price'])
-            buy_quantity = self.position_increment
-            usd_balance = float(self.client.get_asset_balance(asset='USDT')['free'])
-            if buy_quantity <= 0 or usd_balance < buy_quantity * average_price:
+            buy_quantity = self.position_increment / average_price
+            if usd_balance < self.position_increment:
                 print("Insufficient balance to buy.")
                 reward = -1
             else:
                 try:
                     order = self.client.order_market_buy(symbol=self.assetpair, quantity=buy_quantity)
-                    time.sleep(5)  # Add delay after the buy order
+                    time.sleep(5)
                     print("Bought {} of {}".format(buy_quantity, self.asset1))
                     self.trades.append((order['fills'][0]['price'], buy_quantity))
                     self.free_balance -= buy_quantity * average_price  # Adjust free balance
-                    reward += 0.5 * (self.MACD[-1])
+                    reward = 0.5 * (self.MACD[-1])
                 except Exception as e:
                     print("Buy failed:", e)
-        elif action == 2:
+        elif action == 2:  # Sell
             print("################Agent chose to sell.###################")
             avg_price_info = self.client.get_avg_price(symbol=self.assetpair)
-            time.sleep(5)  # Add delay after the request
+            time.sleep(5)
             average_price = float(avg_price_info['price'])
-            sell_quantity = self.position_increment
-            asset_balance = float(self.client.get_asset_balance(asset=self.asset1)['free'])
-            if sell_quantity <= 0 or asset_balance < sell_quantity:
+            sell_quantity = self.position_increment / average_price
+            if btc_balance < sell_quantity:
                 print("Insufficient balance to sell.")
                 reward = -1
             else:
                 try:
                     order = self.client.order_market_sell(symbol=self.assetpair, quantity=sell_quantity)
-                    time.sleep(5)  # Add delay after the sell order
+                    time.sleep(5)
                     print("Sold {} of {}".format(sell_quantity, self.asset1))
                     self.trades.append((order['fills'][0]['price'], -sell_quantity))
                     self.free_balance += sell_quantity * average_price  # Adjust free balance
-                    reward += 0.5 * (self.MACD[-1])
+                    reward = 0.5 * (self.MACD[-1])
                 except Exception as e:
                     print("Sell failed:", e)
 
@@ -400,7 +412,8 @@ class LiveBinanceEnvironment(py_environment.PyEnvironment):
         self.MACD_trend = self.MACD_trend.fillna(self.MACD_trend[self.slow_ema]).tolist()
         self.MACD.pop(0)
         self.MACD.append(self.MACD_trend[-1])
-        self._state = [self.balance, self.free_balance] + self.return_history + self.MACD
+        self.MA5.append(self.price_data['Close'].rolling(window=5).mean().iloc[-1])
+        self._state = [self.balance, self.free_balance] + self.return_history + self.MACD + [self.MA5[-1]]
 
         asset_balance = float(self.client.get_asset_balance(asset=self.asset1)['free'])
         print(f"{self.asset1} Balance:", asset_balance)
