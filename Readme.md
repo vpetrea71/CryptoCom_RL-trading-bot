@@ -12,7 +12,7 @@ https://en.wikipedia.org/wiki/Q-learning
 
 ## Install
 ```
-pip install -r requirements.txt
+pip install -r requirements.txt 
 ```
 
 ## Learn 
@@ -24,8 +24,8 @@ python learner.py
 
 ## Live trading 
 ```
-export CLIENT_KEY=XXXXX
-export CLIENT_SECRET=XXXXX
+export API_KEY=XXXXX
+export API_SECRET=XXXXX
 python trader.py
 ```
 
@@ -45,3 +45,5 @@ python scripts/stock-prices.py price
 - Improve reward function
 - Adding sentiment analysis to the state
 - Risk Management
+- CryptoCom exchange add perpetual env to trade perpetual symbols ,i tried bun no luck
+- 
