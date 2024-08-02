@@ -17,11 +17,11 @@ pip install -r requirements.txt
 
 ## Learn 
 modify hyper parameters in learner.py
-then run
+then run python3 learner.py
 ```
 python learner.py
 ```
-
+RUN  python3 cryptocom_trader.py to trade live 
 ## Live trading 
 ```
 export API_KEY=XXXXX
