@@ -18,6 +18,7 @@ pip install -r requirements.txt
 ## Learn 
 modify hyper parameters in learner.py
 then run python3 learner.py
+make a folder asset_prices en use binance-prices.py to download data 
 ```
 python3 learner.py
 ```
