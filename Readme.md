@@ -19,7 +19,7 @@ pip install -r requirements.txt
 modify hyper parameters in learner.py
 then run python3 learner.py
 ```
-python learner.py
+python3 learner.py
 ```
 RUN  python3 cryptocom_trader.py to trade live 
 ## Live trading 
