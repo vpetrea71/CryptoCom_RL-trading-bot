@@ -93,14 +93,12 @@ class LiveCryptoComEnvironment(py_environment.PyEnvironment):
             volume_spike = current_volume / avg_volume if avg_volume > 0 else 0
 
             if action == 0:  # Hold
-                
                 ma5 = self.price_data['close'].tail(5).mean()
                 if closing_price > ma5:
                     reward += 1  # Positive reward for holding in an uptrend
                 elif closing_price < ma5:
-                    reward += 1  # Positive reward for waiting in a downtrend
-                    reward -= 0.6
-                
+                    reward += 0.3  # Positive reward for waiting in a downtrend
+
             elif action == 1:  # Buy
                 buy_price = closing_price * (1 + self.fees)
                 available_balance = self.get_balance()
@@ -171,7 +169,7 @@ class LiveCryptoComEnvironment(py_environment.PyEnvironment):
                 reward += profits  # Reward based on profit
             else:
                 reward += profits  # Negative reward based on loss
-                
+
             if volume_spike > 1.2:
                 reward += 0.3
             self.trades.append({
@@ -274,15 +272,19 @@ class LiveCryptoComEnvironment(py_environment.PyEnvironment):
             num_positions = len(self.positions)
             usd_balance = self.get_balance()
             btc_balance = self.get_btc_balance()
+            current_volume = self.volume_history[-1] if self.volume_history else 0
+            avg_volume = np.mean(self.volume_history[-self.price_history_t:]) if len(self.volume_history) >= self.price_history_t else 0
+            volume_spike = current_volume / avg_volume if avg_volume > 0 else 0
             self._state = [
                 closing_price,
                 macd_trend,
                 num_positions,
                 usd_balance,
-                btc_balance
+                btc_balance,
+                volume_spike
             ]
         else:
-            self._state = [0, 0, 0, 0, 0]
+            self._state = [0, 0, 0, 0, 0, 0]
 
     def sleep(self):
         time.sleep(self.sleep_duration)
