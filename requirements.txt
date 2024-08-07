@@ -7,6 +7,6 @@ numpy==1.23
 python-binance==0.7.10
 python-dotenv==0.17.0
 tf agents
-tensorflow
+tensorflow2.13
 python3.8
 
